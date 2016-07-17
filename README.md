@@ -21,7 +21,7 @@ Define your Simple Schemas for your collection and let `schema-graphql-bridge` d
 
 Options: `{name: String, fields: [], except: []}`
 
-- `name`: The GraphQL entity's name; if provided, the schema definitions or resolvers are wrapped in a `type List{}` / {List: resolvers} / {List: mocks}
+- `name`: The GraphQL entity's name; if provided, the schema definitions or resolvers are wrapped in a `type List{}` / `{List: resolvers}` / `{List: mocks}`
 
 - `fields`: Write schema definitions/resolvers/mocks only for these fields
 
@@ -32,6 +32,9 @@ Options: `{name: String, fields: [], except: []}`
 
 ```
   Tasks.schema = new SimpleSchema({
+    _id: {
+      type: String
+    },
     title: { 
       type: String 
     },
@@ -99,7 +102,35 @@ Options: `{name: String, fields: [], except: []}`
   export default taskResolvers;
 ```
 
-## Simple Schema types supported:
+### This package and the above code replaces:
+
+```
+  type Task {
+    _id: String
+    title: String 
+    description: String 
+    ordering: Number
+    status: Number
+    creator: String
+    list: String
+  }
+
+```
+
+```
+  const resolvers = {
+    Task: {
+      title: ({ title }) => title,
+      description: ({ description }) => description,
+      ordering: ({ ordering }) => ordering,
+      status: ({ status }) => status,
+      creator: ({ creator }) => creator,
+      list: ({ list }) => list
+    }
+  }
+```
+
+## Simple Schema types supported
 
 (all except `Object` and `[Object]`)
 
@@ -115,3 +146,7 @@ Options: `{name: String, fields: [], except: []}`
 
 ```
 
+## Plans
+
+- support `Object`
+- `optional` -> `!`
