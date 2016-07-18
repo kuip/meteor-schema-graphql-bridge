@@ -2,7 +2,7 @@
 
 Change only your Meteor Simple Schema: GraphQL schema & resolvers are updated automatically.
 
-Define your Simple Schemas for your collection and let `schema-graphql-bridge` do the tedious work of defining the schema's fields and resolvers, for you.
+Define your Simple Schemas for your collection and let `schema-graphql-bridge` do the tedious work of defining the schema's basic fields and resolvers, for you.
 
 ## How to use
 
@@ -13,25 +13,41 @@ Define your Simple Schemas for your collection and let `schema-graphql-bridge` d
 - take a look at: https://github.com/loredanacirstea/meteor-apollo-react-boilerplate/tree/master/imports/api
 
 ```
-  let schema = SchemaBridge.schema(SimpleSchema, [options]);
-  let resolvers = SchemaBridge.resolvers(SimpleSchema, [options]);
-  let mocks = SchemaBridge.mocks(SimpleSchema, [options]);
+  let schema = SchemaBridge.schema(SimpleSchema, name, [options]);
+  let resolvers = SchemaBridge.resolvers(SimpleSchema, name, [options]);
 
 ```
 
-Options: `{name: String, fields: [], except: []}`
+Options: `{wrap: Boolean, fields: [String], except: [String]}`
 
-- `name`: The GraphQL entity's name; if provided, the schema definitions or resolvers are wrapped in a `type List{}` / `{List: resolvers}` / `{List: mocks}`
+- `wrap`: default `true`
+  - if set to `true`, `SchemaBridge.schema` will return a String with the GraphQL definitions for the SimpleSchema
+  - set to `false` if you want to further edit the GraphQL schema (see examples)
+  - if set to `false`, `SchemaBridge.schema` will return `{ objects, fields }`
+      - `objects` = GraphQL type definitions for the SimpleSchema objects
+      - `fields` = definitions for the first level SimpleSchema fields
 
-- `fields`: Write schema definitions/resolvers/mocks only for these fields
+- `fields`: Write schema definitions/resolvers only for these fields
 
-- `except`: Write schema definitions/resolvers/mocks for all fields except these
+- `except`: Write schema definitions/resolvers for all fields except these
 
 
 ### Simple Schema example:
 
 ```
-  Tasks.schema = new SimpleSchema({
+  const subList = new SimpleSchema({
+    field3: {
+      type: Object
+    },
+    'field3.attr': {
+      type: Object,
+    },
+    'field3.attr.something': {
+      type: String
+    }
+  });
+
+  Lists.schema = new SimpleSchema({
     _id: {
       type: String
     },
@@ -41,21 +57,9 @@ Options: `{name: String, fields: [], except: []}`
     description: { 
       type: String 
     },
-    ordering: {
-      type: Number,
-      optional: true,
-    },
-    status: {
-      type: Number,
-      label: 'Status',
-      allowedValues: [0, 1, 2]
-    },
-    creator: {
-      type: String,
-      label: 'Creator'
-    },
-    list: {
-      type: String
+    sublist: {
+      type: subList,
+      optional: true
     },
   });
 
@@ -64,24 +68,23 @@ Options: `{name: String, fields: [], except: []}`
 ### Define your GraphQL schema
 
 ```
-  // .../tasks-schema.js
+  // .../lists-schema.js
   import SchemaBridge from 'meteor/kuip:schema-graphql-bridge';
-  import Tasks from './tasks';
+  import Lists from './lists';
 
-  // Entire schema for the Task entity:
-  const taskSchema = SchemaBridge.schema(Tasks.schema, {name: 'Task'});
-  export default taskSchema;
+  // Entire schema for the List entity:
+  const listSchema = SchemaBridge.schema(Lists.schema, 'List');
+  export default listSchema;
 
   // If you want to modify it afterwards:
-  let fieldsSchema = SchemaBridge.schema(Tasks.schema);
+  let listDefs = SchemaBridge.schema(Lists.schema, 'List', {wrap: false});
 
-  const taskSchema = `
-    type Task {
-      _id: ID!
-      ${fieldsSchema}
-      taskList: List
-    }
-  `;
+  const listSchema = `
+    ${listDefs.objects}
+    type List {
+      ${listDefs.fields}
+      tasks: [Task]
+   }`;
   export default taskSchema;
 
 ```
@@ -90,63 +93,57 @@ Options: `{name: String, fields: [], except: []}`
 
 ```
   import SchemaBridge from 'meteor/kuip:schema-graphql-bridge';
-  import Tasks from './tasks';
-  import Lists from '../lists/lists';
+  import Lists from './lists';
+  import Tasks from '../tasks/tasks';
 
-  let taskResolvers = SchemaBridge.resolvers(Tasks.schema);
+  let listResolvers = SchemaBridge.resolvers(Lists.schema, 'List');
 
-  taskResolvers.taskList = (root, args, context) => {
-    return Lists.findOne(root.list || args.list)
+  listResolvers.List.tasks = (root, args, context) => {
+    return Tasks.find({list: root._id}).fetch();
   };
 
-  export default taskResolvers;
+  export default listResolvers;
 ```
 
 ### This package and the above code replaces:
 
 ```
-  type Task {
+  type ListSublistField3Attr {
+    something: ListSublistField3AttrSomething
+  }
+  type ListSublistField3 {
+    attr: ListSublistField3Attr
+  }
+  type ListSublist {
+    field3: ListSublistField3
+  }
+  type List {
     _id: String
     title: String 
     description: String 
-    ordering: Number
-    status: Number
-    creator: String
-    list: String
+    sublist: ListSublist
   }
 
 ```
 
 ```
   const resolvers = {
-    Task: {
+    List: {
       title: ({ title }) => title,
       description: ({ description }) => description,
-      ordering: ({ ordering }) => ordering,
-      status: ({ status }) => status,
-      creator: ({ creator }) => creator,
-      list: ({ list }) => list
-    }
+      sublist: ({ sublist }) => sublist,
+    },
+    ListSublist: {
+      field3: ({ field3 }) => field3
+    },
+    ListSublistField3: {}
   }
 ```
 
 ## Simple Schema types supported
 
-(all except `Object` and `[Object]`)
+Should work with all types.
 
-```
-  String
-  Number
-  Boolean
-  Date
-  [String]
-  [Number]
-  [Boolean]
-  [Date]
+- `Date` is transformed into `String`
+- `Object`s are transformed into GraphQL object types, with a camel cased name, based on it's SimpleSchema path.
 
-```
-
-## Plans
-
-- support `Object`
-- `optional` -> `!`
