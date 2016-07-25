@@ -8,7 +8,7 @@ Define your Simple Schemas for your collection and let `schema-graphql-bridge` d
 
 `meteor add kuip:schema-graphql-bridge`
 
-- demo: https://www.youtube.com/watch?v=5Z7ZSUIdamg
+- demo: https://www.youtube.com/watch?v=5Z7ZSUIdamg (be carefull, the API has changed!)
 
 - take a look at: https://github.com/loredanacirstea/meteor-apollo-react-boilerplate/tree/master/imports/api
 
@@ -27,9 +27,11 @@ Options: `{wrap: Boolean, fields: [String], except: [String]}`
       - `objects` = GraphQL type definitions for the SimpleSchema objects
       - `fields` = definitions for the first level SimpleSchema fields
 
-- `fields`: Write schema definitions/resolvers only for these fields
+- `fields`: Write schema definitions/resolvers only for these fields(*)
 
-- `except`: Write schema definitions/resolvers for all fields except these
+- `except`: Write schema definitions/resolvers for all fields except these(*)
+
+(*) fields = SimpleSchema._firstLevelSchemaKeyss
 
 
 ### Simple Schema example:
