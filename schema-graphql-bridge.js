@@ -16,8 +16,8 @@ export default SchemaBridge = {
     });
     objs = objs.length ? (objs.reduce((a,b) => `${a}${b}`)) : '';
 
-    console.log('schema objs: ', objs)
-    console.log('schema fields: ', content)
+    //console.log('schema objs: ', objs)
+    //console.log('schema fields: ', content)
 
     if(!wrap)
       return { objects: objs, fields: content};
@@ -48,7 +48,7 @@ export default SchemaBridge = {
         : schema._objectKeys[key+'.$.'] ? '.$.': null;
       if(!splitter)
         return ``;
-      console.log('key: ', key)
+
       if(!schema._objectKeys[key+splitter].length)
         return ``;
 
