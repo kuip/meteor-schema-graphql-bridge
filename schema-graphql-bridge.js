@@ -6,7 +6,7 @@ export default SchemaBridge = {
     // Get field definitions for the main type
     keys = getFields({schema, fields, except});
     content = keys.keys.map(k => {
-      return getFieldSchema(S, k, name);
+      return getFieldSchema(schema, k, name);
     });
     content = content.reduce((a,b) => `${a}${b}`);
 
@@ -16,8 +16,8 @@ export default SchemaBridge = {
     });
     objs = objs.length ? (objs.reduce((a,b) => `${a}${b}`)) : '';
 
-    //console.log('schema objs: ', objs)
-    //console.log('schema fields: ', content)
+    console.log('schema objs: ', objs)
+    console.log('schema fields: ', content)
 
     if(!wrap)
       return { objects: objs, fields: content};
@@ -41,9 +41,18 @@ export default SchemaBridge = {
       };
     });
     
-    // reolvers for the contained objects, defined as new GraphQL types
+    // Rezolvers for the contained objects, defined as new GraphQL types
     keys.objectKeys.forEach(key => {
-      let k = key.split('.'), attr = k[k.length-1];
+      let splitter = schema._objectKeys[key+'.'] 
+        ? '.' 
+        : schema._objectKeys[key+'.$.'] ? '.$.': null;
+      if(!splitter)
+        return ``;
+      console.log('key: ', key)
+      if(!schema._objectKeys[key+splitter].length)
+        return ``;
+
+      let k = key.split(splitter), attr = k[k.length-1];
       if(k.length == 1)
         obj = res[name];
       else
@@ -89,17 +98,28 @@ const camel = k => k[0].toUpperCase() + k.substr(1);
 const typeName = (key, name) => name + (key.split('.').reduce((a,b) => a+camel(b), ''));
 
 // Get field key definition
-const getFieldSchema = (S, k, name) => {
+const getFieldSchema = (schema, k, name) => {
+  const S = schema._schema;
   let key = k.substr(k.lastIndexOf('.')+1),
-    value = '';
+    value = null;
 
-  if(S[k].type == Object)
-    value = `${typeName(k, name)}`;
+  if(S[k].type == Object) {
+    // Only add it if it has keys
+    if(schema._objectKeys[k+'.'] && schema._objectKeys[k+'.'].length)
+      value = `${typeName(k, name)}`;
+  }
+  else if(S[k].type == Array && S[`${k}.$`]) {
+    if(gqlType[S[`${k}.$`].type])
+      value = `[${gqlType[S[`${k}.$`].type]}]`;
+    // Maybe it is an Object
+    else if(!value && schema._objectKeys[k+'.$.'])
+      value = `[${typeName(k, name)}]`;
+  }
   else
     value = `${gqlType[S[k].type]}`;
 
-  if(S[k].type == Array)
-    value = `[${value}]`;
+  if(!value)
+    return ``;
 
   return `
     ${key}: ${value}`;
@@ -107,15 +127,23 @@ const getFieldSchema = (S, k, name) => {
 
 // Set a new GraphQL type definition
 const getObjectSchema = (schema, key, name) => {
-  let content = schema._objectKeys[key+'.'].map(k => {
-    return `${getFieldSchema(schema._schema, `${key}.${k}`, name)}`;
+  let splitter = schema._objectKeys[key+'.'] 
+    ? '.' 
+    : schema._objectKeys[key+'.$.'] ? '.$.': null;
+  if(!splitter)
+    return ``;
+    
+  let content = schema._objectKeys[key+splitter].map(k => {
+    return `${getFieldSchema(schema, `${key + splitter + k}`, name)}`;
   });
+  if(!content.length)
+    return ``;
   content = content.reduce((a,b) => `${a}${b}`);
 
   return `
   type ${typeName(key, name)} {
       ${content}
-  }`
+  }`;
 };
 
 
@@ -141,15 +169,17 @@ const getFields = ({schema, fields, except=[]}, noObjects) => {
 
   // Get the Objects' keys
   objectKeys = Object.keys(schema._objectKeys)
-    .map(k => k.substring(0, k.lastIndexOf('.')))
+    .map(k => {
+      let ind = k.lastIndexOf('.$');
+      return k.substring(0, ind > -1 ? ind : k.lastIndexOf('.'))
+    })
     .filter(k => {
       if(fields)
         return fields.indexOf(k) > -1;
       if(except)
         return except.indexOf(k) == -1;
       return true;
-    })
-    //.reverse();
+    });
 
   return { keys, objectKeys };
 };
