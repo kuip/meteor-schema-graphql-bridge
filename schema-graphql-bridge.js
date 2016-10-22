@@ -1,18 +1,18 @@
 export default SchemaBridge = {
-  schema: (schema, name, { fields, except, wrap=true }={}) => {
+  schema: (schema, name, { fields, except, custom, wrap=true }={}) => {
     const S = schema._schema;
     let keys, content, objs;
 
     // Get field definitions for the main type
     keys = getFields({schema, fields, except});
     content = keys.keys.map(k => {
-      return getFieldSchema(schema, k, name);
+      return getFieldSchema(schema, k, name, custom);
     });
     content = content.reduce((a,b) => `${a}${b}`);
 
     // Get type definitions for the contained objects
     objs = keys.objectKeys.map(k => {
-      return getObjectSchema(schema, k, name);
+      return getObjectSchema(schema, k, name, custom);
     });
     objs = objs.length ? (objs.reduce((a,b) => `${a}${b}`)) : '';
 
@@ -40,11 +40,11 @@ export default SchemaBridge = {
         return root[k];
       };
     });
-    
+
     // Rezolvers for the contained objects, defined as new GraphQL types
     keys.objectKeys.forEach(key => {
-      let splitter = schema._objectKeys[key+'.'] 
-        ? '.' 
+      let splitter = schema._objectKeys[key+'.']
+        ? '.'
         : schema._objectKeys[key+'.$.'] ? '.$.': null;
       if(!splitter)
         return ``;
@@ -65,7 +65,7 @@ export default SchemaBridge = {
     });
     //console.log(res);
     return res;
-    
+
   },
   // Mocks do not support Objects
   mocks: (schema, name, { fields, except, wrap=true } = {}) => {
@@ -98,12 +98,14 @@ const camel = k => k[0].toUpperCase() + k.substr(1);
 const typeName = (key, name) => name + (key.split('.').reduce((a,b) => a+camel(b), ''));
 
 // Get field key definition
-const getFieldSchema = (schema, k, name) => {
+const getFieldSchema = (schema, k, name, custom = {}) => {
   const S = schema._schema;
   let key = k.substr(k.lastIndexOf('.')+1),
     value = null;
 
-  if(S[k].type == Object) {
+  if(custom[k])
+    value = custom[k];
+  else if(S[k].type == Object) {
     // Only add it if it has keys
     if(schema._objectKeys[k+'.'] && schema._objectKeys[k+'.'].length)
       value = `${typeName(k, name)}`;
@@ -126,15 +128,15 @@ const getFieldSchema = (schema, k, name) => {
 };
 
 // Set a new GraphQL type definition
-const getObjectSchema = (schema, key, name) => {
-  let splitter = schema._objectKeys[key+'.'] 
-    ? '.' 
+const getObjectSchema = (schema, key, name, custom) => {
+  let splitter = schema._objectKeys[key+'.']
+    ? '.'
     : schema._objectKeys[key+'.$.'] ? '.$.': null;
   if(!splitter)
     return ``;
-    
+
   let content = schema._objectKeys[key+splitter].map(k => {
-    return `${getFieldSchema(schema, `${key + splitter + k}`, name)}`;
+    return `${getFieldSchema(schema, `${key + splitter + k}`, name, custom)}`;
   });
   if(!content.length)
     return ``;
