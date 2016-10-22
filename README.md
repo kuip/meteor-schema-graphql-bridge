@@ -18,18 +18,29 @@ Define your Simple Schemas for your collection and let `schema-graphql-bridge` d
 
 ```
 
-Options: `{wrap: Boolean, fields: [String], except: [String]}`
+Options:
 
-- `wrap`: default `true`
+- `wrap`: `Boolean`, default `true`
   - if set to `true`, `SchemaBridge.schema` will return a String with the GraphQL definitions for the SimpleSchema
   - set to `false` if you want to further edit the GraphQL schema (see examples)
   - if set to `false`, `SchemaBridge.schema` will return `{ objects, fields }`
       - `objects` = GraphQL type definitions for the SimpleSchema objects
       - `fields` = definitions for the first level SimpleSchema fields
 
-- `fields`: Write schema definitions/resolvers only for these fields(*)
+- `fields`: `[String]`
+  - Write schema definitions/resolvers only for these fields(*)
 
-- `except`: Write schema definitions/resolvers for all fields except these(*)
+- `except`:`[String]`
+  - Write schema definitions/resolvers for all fields except these(*)
+  
+- `custom`: `Object`
+  - Custom values for the schema fields
+
+```
+  custom: {
+     user: 'User',
+  },
+```
 
 (*) fields = SimpleSchema._firstLevelSchemaKeyss
 
