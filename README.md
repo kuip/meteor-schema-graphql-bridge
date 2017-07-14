@@ -158,5 +158,6 @@ Options:
 Should work with all types.
 
 - `Date` is transformed into `String`
+- [Regular expressions](https://github.com/aldeed/node-simple-schema#regex) are transformed into `String`
 - `Object`s are transformed into GraphQL object types, with a camel cased name, based on it's SimpleSchema path.
 

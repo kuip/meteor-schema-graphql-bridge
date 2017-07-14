@@ -121,6 +121,8 @@ const getFieldSchema = (schema, k, name, custom = {}) => {
     else if(!value && schema._objectKeys[k+'.$.'])
       value = `[${typeName(k, name)}]`;
   }
+  else if(typeDef instanceof RegExp)
+    value = `${gqlType[String]}`;
   else
     value = `${gqlType[typeDef]}`;
 
@@ -195,6 +197,7 @@ gqlType[String] = 'String';
 gqlType[Number] = 'Float';
 gqlType[Boolean] = 'Boolean';
 gqlType[Date] = 'String';
+gqlType[RegExp] = 'String';
 
 defaultMocks = {
   String: () => 'It works!',
