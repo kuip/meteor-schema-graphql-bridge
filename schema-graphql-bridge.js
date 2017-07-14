@@ -103,14 +103,18 @@ const getFieldSchema = (schema, k, name, custom = {}) => {
   let key = k.substr(k.lastIndexOf('.')+1),
     value = null;
 
+  const typeDef = S[k].type.constructor.name === 'SimpleSchemaGroup'
+    ? S[k].type.definitions[0].type
+    : S[k].type;
+
   if(custom[k])
     value = custom[k];
-  else if(S[k].type == Object) {
+  else if(typeDef == Object) {
     // Only add it if it has keys
     if(schema._objectKeys[k+'.'] && schema._objectKeys[k+'.'].length)
       value = `${typeName(k, name)}`;
   }
-  else if(S[k].type == Array && S[`${k}.$`]) {
+  else if(typeDef == Array && S[`${k}.$`]) {
     if(gqlType[S[`${k}.$`].type])
       value = `[${gqlType[S[`${k}.$`].type]}]`;
     // Maybe it is an Object
@@ -118,7 +122,7 @@ const getFieldSchema = (schema, k, name, custom = {}) => {
       value = `[${typeName(k, name)}]`;
   }
   else
-    value = `${gqlType[S[k].type]}`;
+    value = `${gqlType[typeDef]}`;
 
   if(!value)
     return ``;
